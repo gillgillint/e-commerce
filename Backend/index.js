@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
@@ -19,6 +20,7 @@ mongoose
     console.log(error);
   });
 
+// Routes
 app.use(cors());
 app.use(express.json());
 app.use('/api/users', userRoute);
@@ -28,6 +30,17 @@ app.use('/api/carts', cartRoute);
 app.use('/api/orders', orderRoute);
 app.use('/api/checkout', stripeRoute);
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log('Backend server is running');
-});
+// Serve Frontend
+if (process.env.NODE_ENV === 'production') {
+  // Set build folder as static
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+  app.get('*', (req, res) =>
+    res.sendFile(__dirname, '../frontend', 'build', 'index.html')
+  );
+}
+
+if (process)
+  app.listen(process.env.PORT || 5000, () => {
+    console.log('Backend server is running');
+  });
