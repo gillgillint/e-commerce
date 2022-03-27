@@ -6,6 +6,7 @@ import {
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Container = styled.div`
   flex: 1;
@@ -64,9 +65,11 @@ function ProductItem({ item }) {
         <IconButton sx={IconStyles}>
           <ShoppingCartOutlined />
         </IconButton>
-        <IconButton sx={IconStyles}>
-          <SearchOutlined />
-        </IconButton>
+        <Link to={`/product/${item._id}`}>
+          <IconButton sx={IconStyles}>
+            <SearchOutlined />
+          </IconButton>
+        </Link>
         <IconButton sx={IconStyles}>
           <FavoriteBorder />
         </IconButton>

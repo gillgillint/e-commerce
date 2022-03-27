@@ -1,12 +1,66 @@
-import { Add,  Remove } from '@mui/icons-material';
+import { Add, Remove } from '@mui/icons-material';
 import { Button, Typography } from '@mui/material';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Announcement from '../../Components/Announcement';
 import Footer from '../../Components/Layout/Footer';
 import Navbar from '../../Components/Layout/Navbar';
-import {Details, Hr, Info, PriceDetail, Product, ProductAmount, ProductAmountContainer, ProductColor, ProductDetail, ProductId, ProductName, ProductPrice, ProductSize, Summary, SummaryItem, SummaryItemPrice, SummaryItemText, SummaryTitle} from './CartElements'
+import {
+  Details,
+  Hr,
+  Info,
+  PriceDetail,
+  Product,
+  ProductAmount,
+  ProductAmountContainer,
+  ProductColor,
+  ProductDetail,
+  ProductId,
+  ProductName,
+  ProductPrice,
+  ProductSize,
+  Summary,
+  SummaryItem,
+  SummaryItemPrice,
+  SummaryItemText,
+  SummaryTitle,
+} from './CartElements';
+import { useSelector, useDispatch } from 'react-redux';
+import StripeCheckout from 'react-stripe-checkout';
+import { userRequest } from '../../requestMethod';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { reset } from '../../Redux/cartSlice';
+
+const KEY = process.env.REACT_APP_STRIPE;
 
 function Cart() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const cart = useSelector((state) => state.cart);
+  const { currentUser } = useSelector((state) => state.auth);
+  const [stripeToken, setStripeToken] = useState(null);
+
+  const onToken = (token) => {
+    setStripeToken(token);
+  };
+
+  useEffect(() => {
+    const makeRequest = async () => {
+      try {
+        const res = await userRequest.post('checkout/payment', {
+          tokenId: stripeToken.id,
+          amount: 500,
+        });
+        navigate('/success', {
+          state: {
+            stripeData: res.data,
+            products: cart,
+          },
+        });
+      } catch (error) {}
+    };
+    stripeToken && makeRequest();
+  }, [stripeToken, cart.total, navigate]);
+
   return (
     <div>
       <Navbar />
@@ -18,6 +72,7 @@ function Cart() {
         </Typography>
         <div className='top flex items-center justify-between p-4'>
           <Button
+            onClick={() => navigate('/')}
             variant='outlined'
             className='p-2.5 font-semibold rounded-none '
           >
@@ -40,64 +95,42 @@ function Cart() {
           </Button>
         </div>
         <div className='flex justify-between sm:flex-row flex-col'>
-          <Info >
-            <Product>
-              <ProductDetail>
-                <img className='w-48' src='https://hips.hearstapps.com/vader-prod.s3.amazonaws.com/1614188818-TD1MTHU_SHOE_ANGLE_GLOBAL_MENS_TREE_DASHERS_THUNDER_b01b1013-cd8d-48e7-bed9-52db26515dc4.png?crop=1xw:1.00xh;center,top&resize=480%3A%2A' />
-                <Details>
-                  <ProductName>
-                    <b>Product:</b> JESSIE THUNDER SHOES
-                  </ProductName>
-                  <ProductId>
-                    <b>ID:</b> 93813718293
-                  </ProductId>
-                  <ProductColor color='black' />
-                  <ProductSize>
-                    <b>Size:</b> 37.5
-                  </ProductSize>
-                </Details>
-              </ProductDetail>
-              <PriceDetail>
-                <ProductAmountContainer>
-                  <Add />
-                  <ProductAmount>2</ProductAmount>
-                  <Remove />
-                </ProductAmountContainer>
-                <ProductPrice>$ 30</ProductPrice>
-              </PriceDetail>
-            </Product>
-            <Hr />
-            <Product>
-              <ProductDetail>
-                <img className='w-48' src='https://i.pinimg.com/originals/2d/af/f8/2daff8e0823e51dd752704a47d5b795c.png' />
-                <Details>
-                  <ProductName>
-                    <b>Product:</b> HAKURA T-SHIRT
-                  </ProductName>
-                  <ProductId>
-                    <b>ID:</b> 93813718293
-                  </ProductId>
-                  <ProductColor color='gray' />
-                  <ProductSize>
-                    <b>Size:</b> M
-                  </ProductSize>
-                </Details>
-              </ProductDetail>
-              <PriceDetail>
-                <ProductAmountContainer>
-                  <Add />
-                  <ProductAmount>1</ProductAmount>
-                  <Remove />
-                </ProductAmountContainer>
-                <ProductPrice>$ 20</ProductPrice>
-              </PriceDetail>
-            </Product>
+          <Info>
+            {cart.products.map((product) => (
+              <Product key={product._id}>
+                <ProductDetail>
+                  <img className='w-48' src={product.img} />
+                  <Details>
+                    <ProductName>
+                      <b>Product:</b> {product.title}
+                    </ProductName>
+                    <ProductId>
+                      <b>ID:</b> {product._id}
+                    </ProductId>
+                    <ProductColor color={product.color} />
+                    <ProductSize>
+                      <b>Size:</b> {product.size}
+                    </ProductSize>
+                  </Details>
+                </ProductDetail>
+                <PriceDetail>
+                  <ProductAmountContainer>
+                    <span className='w-7.5 h-7.5 rounded-lg border flex items-center justify-center mx-1.5'>
+                      <ProductAmount>{product.quantity}</ProductAmount>
+                    </span>
+                  </ProductAmountContainer>
+                  <ProductPrice>
+                    $ {product.price * product.quantity}
+                  </ProductPrice>
+                </PriceDetail>
+              </Product>
+            ))}
           </Info>
           <Summary className='summary flex-1'>
             <SummaryTitle>ORDER SUMMARY</SummaryTitle>
             <SummaryItem>
               <SummaryItemText>Subtotal</SummaryItemText>
-              <SummaryItemPrice>$ 80</SummaryItemPrice>
+              <SummaryItemPrice>$ {cart.total}</SummaryItemPrice>
             </SummaryItem>
             <SummaryItem>
               <SummaryItemText>Estimated Shipping</SummaryItemText>
@@ -109,16 +142,34 @@ function Cart() {
             </SummaryItem>
             <SummaryItem type='total'>
               <SummaryItemText>Total</SummaryItemText>
-              <SummaryItemPrice>$ 80</SummaryItemPrice>
+              <SummaryItemPrice>$ {cart.total}</SummaryItemPrice>
             </SummaryItem>
-           <Button
-            variant='contained'
-            sx={{ bgcolor: 'grey.900' }}
-            className='p-2.5 border-2 font-semibold shadow-none rounded-none'
-            fullWidth
-          >
-              CHECKOUT NOW
-          </Button>
+
+            {currentUser ? (
+              <>
+                <StripeCheckout
+                  name='e-commerce Shop'
+                  image='https://avatars.githubusercontent.com/u/1486366?v=4'
+                  billingAddress
+                  shippingAddress
+                  description={`Your total is $${cart.total}`}
+                  amount={cart.total * 100}
+                  token={onToken}
+                  stripeKey={KEY}
+                >
+                  <Button
+                    variant='contained'
+                    sx={{ bgcolor: 'grey.900' }}
+                    className='p-2.5 border-2 font-semibold shadow-none rounded-none'
+                    fullWidth
+                  >
+                    CHECKOUT NOW
+                  </Button>
+                </StripeCheckout>
+              </>
+            ) : (
+              <Navigate to='/login' />
+            )}
           </Summary>
         </div>
       </div>
